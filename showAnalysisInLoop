@@ -1,0 +1,7 @@
+#!/bin/bash
+while true
+do
+    echo -n " `date +%H:%M` "
+    ./analyzeUrlsYaml
+    sleep 60 
+done

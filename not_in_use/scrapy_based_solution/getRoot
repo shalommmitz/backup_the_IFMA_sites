@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+import requests
+page = requests.get('http://www.ifma.org.il/BRPortal/br/P100.jsp')
+print len(page.text)
+open("P", 'w').write(page)
+#wget http://www.ifma.org.il/BRPortal/br/P100.jsp

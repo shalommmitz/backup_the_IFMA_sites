@@ -1,0 +1,8 @@
+import glob
+s = "</td></tr></table></td></tr></table></div><div>&nbsp;</div><div>&nbsp;</div></td></tr></table></div><div"
+s = "www_ifma_org_il/BRPortal/resources/gan/css/stylesheet.css"
+for fn in glob.glob("cache/*"):
+    t = open(fn).read()
+    if s in t: 
+       print fn
+       exit()

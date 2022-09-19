@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+import urls, yaml
+from urls import toLog
+
+#ROOT_URL = "http://www.ifma.org.il/BRPortal/br/P100.jsp"
+#LOCAL_STORAGE_PATH = "yidxsfpt/"
+#
+#white_list = { }    
+#white_list["www.ifma.org.il"]    = [ "" ]   #Everything under this domain is included 
+#white_list["www.ifma.022.co.il"] = [ "" ]   #Everything under this domain is included 
+#white_list["www.understending-math.022.co.il"] = [ "" ]   #Everything under this domain is included
+#white_list["www.022.co.il"] = [ "/BRPortal/resources", "BRPortal/resources" ]   
+#white_list["www.files.org.il"] = [ "BRPortalStorage" ]   
+#
+#config = { }
+#config["ROOT_URL"] = ROOT_URL
+#config["LOCAL_STORAGE_PATH"] = LOCAL_STORAGE_PATH
+#config["white_list"] = white_list
+#yaml.dump(config, open("config.yaml", 'w') )
+
+config = yaml.load(open("config.yaml"))
+u = urls.URLs(config["ROOT_URL"], config["LOCAL_STORAGE_PATH"])
+u.setWhiteList(config["white_list"])
+
+numFetched = 1; numFilesModified = 1
+while numFetched or numFilesModified:
+    u.logStats()
+    numFetched = u.fetchIfNeeded()
+    numFilesModified = u.analyzeAllFetchedFiles()
+
+

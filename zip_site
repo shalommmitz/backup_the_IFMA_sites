@@ -1,0 +1,3 @@
+FN=site_`date +%d%b%Y`.zip
+zip -r $FN yidxsfpt log.txt cache
+mv $FN /home/<USER NAME>/s/

@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+import yaml, glob
+
+u = yaml.safe_load(open("urls.yaml"))
+numSeen = numFetchStarted = numFetched = numDone = 0
+for url in u.keys():
+            p = u[url]["phase"]
+            if p=="SEEN": 
+                numSeen += 1
+            elif p=="FETCH-STARTED": 
+                numFetchStarted += 1
+            elif p=="FETCHED": 
+                numFetched += 1
+            elif p=="DONE": 
+                numDone += 1
+            else:
+                print "For URL", url, " phase is unexpected: '"+p+"' - Aborting."
+                exit()
+numCache = len(glob.glob("cache/*"))
+print "Stats: Seen %d, Fetched-started %d, Fetched %d, Done %d. At cache %d" % \
+      (numSeen, numFetchStarted, numFetched, numDone, numCache)

@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+import os
+
+ref = "<!DOCTYPE html PUBLIC"
+fileList = os.popen("find cache -name 'P*jsp*'").read().split("\n")
+for f in fileList:
+    if not f: continue
+    fileText = open(f, 'rb').read()
+    fileStart = open(f, 'rb').read(44)[22:43]
+    if fileStart!=ref or 'http-equiv="refresh"' in fileText:
+       os.system("rm '"+ f +"'")
+       os.system("rm '"+ f +"_fetch_result.txt'")
+
+

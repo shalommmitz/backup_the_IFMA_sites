@@ -1,0 +1,8 @@
+LOCAL_STORAGE_PATH: yidxsfpt/
+ROOT_URL: http://www.ifma.org.il/BRPortal/br/P100.jsp
+white_list:
+  www.022.co.il: [/BRPortal/resources, BRPortal/resources]
+  www.files.org.il: [BRPortalStorage]
+  www.ifma.022.co.il: ['']
+  www.ifma.org.il: ['']
+  www.understending-math.022.co.il: ['']

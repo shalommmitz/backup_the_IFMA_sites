@@ -1,0 +1,2 @@
+find cache -size 0c
+find cache -size 0c | xargs rm

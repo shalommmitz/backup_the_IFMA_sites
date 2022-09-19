@@ -1,0 +1,9 @@
+wget \
+     --recursive \
+     --no-clobber \
+     --page-requisites \
+     --html-extension \
+     --convert-links \
+     --restrict-file-names=windows \
+     --limit-rate=100k \
+http://web.macam98.ac.il/~talma_g/openpage.htm
