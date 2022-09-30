@@ -6,7 +6,7 @@ os.system("cp P100.html site/yidxsfpt/www_ifma_org_il/BRPortal/br/P100.html")
 ROOT_URL = "http://www.ifma.org.il/BRPortal/br/P100.jsp"
 DEFAULT_SITE = "http://www.ifma.org.il"
 LOCAL_PATH = "site/yidxsfpt/"
-DONT_MODIFY = [ "js", "gif", "png", "jpg" ]
+DONT_MODIFY = [ "js", "gif", "png", "jpg", "pdf", "ico" ]
 DOMAIN_WHITE_LIST = [ "www.ifma.org.il", "www.ifma.022.co.il", "www.022.co.il", "www.files.org.il" ]
 
 u = urls.URLs(ROOT_URL)

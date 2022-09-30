@@ -28,7 +28,7 @@ UrlEquatesToIgnore += [ "http://www.ifma.022.co.il/BRPortalStorage/a/62/79/47-h7
 UrlEquatesToIgnore += [ "http://www.ifma.022.co.il/BRPortalStorage/a/62/79/45-i7DFl11lMe.pdf" ]    # File does not exist at server
 UrlEquatesToIgnore += [ "http://www.ifma.022.co.il/BRPortalStorage/a/62/79/42-2XQd5Dmq83.pdf" ]    # File does not exist at server
 
-DONT_MODIFY_FILE_TYPES = [ "js", "gif", "png", "jpg", ".pdf" ]
+DONT_MODIFY_FILE_TYPES = [ "js", "gif", "png", "jpg", "pdf", "ico" ]
 
 
                                               
@@ -296,8 +296,9 @@ class URLs(object):
             cmd = "cp '"+ self.getCachePathFileName(url) +"' '"+ localPathFN +"'"
             toLog("    fetch: copy cmd: "+ cmd, url)
             os.system(cmd)
-            if localPathFN.endswith("html") and HEADER not in open(localPathFN).read(1000):
-                self.replaceInFile( localPathFN, "\n<head>\n", "\n<head>\n"+ HEADER +"\n" )
+            if localPathFN.endswith("html"):
+                if HEADER not in open(localPathFN).read(1000):
+                    self.replaceInFile( localPathFN, "\n<head>\n", "\n<head>\n"+ HEADER +"\n" )
 
         toLog("    Entering fetch", url)
 
