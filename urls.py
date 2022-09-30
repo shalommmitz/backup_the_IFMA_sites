@@ -1,4 +1,4 @@
-import yaml, os, random, time, glob, urllib, shutil
+import yaml, os, random, time, glob, urllib.request, urllib.parse, urllib.error, shutil
 
 HEADER = "<META HTTP-EQUIV='Content-Type' CONTENT='text/html; charset=utf-8'>"
 WAIT_LOW = 5; WAIT_HIGH = 29
@@ -56,7 +56,7 @@ def toLog(msg, relatedUrl, show=False):
     global logEntryNumber
     logEntryNumber += 1
     if show: 
-        print str(logEntryNumber).zfill(3) +" "+getShortUrl(relatedUrl) +" "+ msg[:160]
+        print((str(logEntryNumber).zfill(3) +" "+getShortUrl(relatedUrl) +" "+ msg[:160]))
     with open("log.txt", 'a') as log:
         textToFile  = str(logEntryNumber).zfill(3) +" "+ msg
         textToFile += "\n         "+ relatedUrl +"\n\n"
@@ -79,8 +79,8 @@ class URLs(object):
     def __init__(self, rootUrl, localStorageRootPath):
         self.urls = { }
         if os.path.isfile("urls.yaml"):
-            tmpUrls = yaml.load(open("urls.yaml"))
-            for url in tmpUrls.keys():
+            tmpUrls = yaml.safe_load(open("urls.yaml"))
+            for url in list(tmpUrls.keys()):
                 self.urls[url] = URL()
                 self.urls[url].phase = tmpUrls[url]["phase"]
                 self.urls[url].parentURL = tmpUrls[url]["parentURL"]  
@@ -101,7 +101,7 @@ class URLs(object):
 
     def saveUrls(self):
         tmpUrls = { }
-        for url in self.urls.keys():
+        for url in list(self.urls.keys()):
             tmpUrls[url] = { }
             tmpUrls[url]["phase"] = self.urls[url].phase
             tmpUrls[url]["parentURL"] = self.urls[url].parentURL             
@@ -115,9 +115,9 @@ class URLs(object):
     def addNewUrl(self, url, parentUrl):
         toLog("    addNewUrl: adding url: '"+ str(url) +"'", url, True)
         #toLog("    addNewUrl: adding url with partent '"+ str(parentUrl) +"'", url)
-        if url in self.urls.keys():
+        if url in list(self.urls.keys()):
             toLog("ERROR: trying to add pre-existing URL - Abort")
-            assert url in self.urls.keys(), "trying to add pre-existing URL"
+            assert url in list(self.urls.keys()), "trying to add pre-existing URL"
         u = URL()
         u.parentURL = parentUrl
         self.urls[url] = u                 # Intermidiate insertion, needed because getUrlParts needs parentUrl
@@ -138,7 +138,7 @@ class URLs(object):
 
     def logStats(self):
         numSeen = numFetchStarted = numFetched = numDone = 0
-        for url in self.urls.keys():
+        for url in list(self.urls.keys()):
             p = self.urls[url].phase
             if p=="SEEN": 
                 numSeen += 1
@@ -371,12 +371,13 @@ class URLs(object):
 
     def fetchIfNeeded(self):
         numToLookAt = 0
-        for url in self.urls.keys():
+        for url in list(self.urls.keys()):
+            #print(f'fetchIfNeeded: looking at url {url}. isOkToFetch: {self.isOkToFetch(url)}')
             if self.isOkToFetch(url): numToLookAt += 1
         toLog("fetchIfNeeded starting.","", True)
 
         numFetched = 0; numFilesLookedAt = 0
-        for url in self.urls.keys():
+        for url in list(self.urls.keys()):
             if not self.isOkToFetch(url): continue
             numFilesLookedAt += 1
             if numFilesLookedAt % 10 == 0:
@@ -395,10 +396,10 @@ class URLs(object):
         return numFetched
 
     def getLocalPathFilename( self, url):
-        if url not in self.urls.keys():
+        if url not in list(self.urls.keys()):
             toLog("ERROR at getLocalPathFilename: requested URL does not exist in URLs - Aborting", str(url), True)
-            print "   URL is: "+ str(url)
-            assert url in  self.urls.keys()   #crash sw, so we can see stack
+            print("   URL is: "+ str(url))
+            assert url in  list(self.urls.keys())   #crash sw, so we can see stack
         netLocation = self.urls[url].netLocation.replace(".", "_")
         fileName = self.urls[url].fileName 
         
@@ -519,7 +520,7 @@ class URLs(object):
             return False
  
         netLocation = u.netLocation
-        if netLocation not in self.whiteList.keys():
+        if netLocation not in list(self.whiteList.keys()):
             toLog("    isIgnoreUrl: reject URL because site not in white list", url, True)
             return False
         path = u.path
@@ -548,7 +549,7 @@ class URLs(object):
         for i in embededUrlIndexes:
             embededUrl = self.extractEmbededUrl(fileText, i)
             if not embededUrl: continue
-            if embededUrl in self.urls.keys(): 
+            if embededUrl in list(self.urls.keys()): 
                 toLog("    Embeded URL pre-exist, will change parent to '"+ url +"'", embededUrl)
                 self.urls[embededUrl].parentUrl = url
             else:
@@ -574,7 +575,7 @@ class URLs(object):
        # For each newly fetched file:  
        #      find embeded URLs, localized references and add found URLs as see for later fetching
         numFilesModified = 0
-        for url in self.urls.keys():
+        for url in list(self.urls.keys()):
             if not self.isInPhase(url, "FETCHED"): 
                 toLog("    Ignoring URL because not in 'FETCHED' phase", url, True)
                 continue
@@ -607,10 +608,10 @@ if __name__=="__main__":
 
     u = URLs("ROOT_URL", ".")
     s = 'Arial;" href="../../what_us_can_learn_from_%20Singapore_math.doc"#_gt##_lt#br#'
-    print u.extractEmbededUrl(s, 8)
+    print(u.extractEmbededUrl(s, 8))
     exit()
 
-    print u.extractEmbededUrl("<a href=\"javascript:showService('P112.jsp?cmd=arc:365310',470,385);\">", 3)
+    print(u.extractEmbededUrl("<a href=\"javascript:showService('P112.jsp?cmd=arc:365310',470,385);\">", 3))
     s = """
 var ifsc2 = ifrm.contentWindow.document.createElement('script');
 ifsc1.src='/BRPortal/resources/gan/js/bioride.js';
@@ -625,8 +626,8 @@ ifrm.contentWindow.document.head.appendChild(ifsc2);
 <!--[if IE]>
 """ 
     loc = s.find("src=")
-    print "loc:", loc
-    print u.extractEmbededUrl(s,loc) 
+    print("loc:", loc)
+    print(u.extractEmbededUrl(s,loc)) 
     
 
 

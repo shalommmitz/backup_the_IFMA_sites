@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import urls, os
 
 os.system("cp P100.html site/yidxsfpt/www_ifma_org_il/BRPortal/br/P100.html")

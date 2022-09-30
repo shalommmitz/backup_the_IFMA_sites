@@ -4,5 +4,5 @@ s = "www_ifma_org_il/BRPortal/resources/gan/css/stylesheet.css"
 for fn in glob.glob("cache/*"):
     t = open(fn).read()
     if s in t: 
-       print fn
+       print(fn)
        exit()

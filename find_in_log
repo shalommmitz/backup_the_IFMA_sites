@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 state = None
 for l in open("log.txt"):
@@ -6,15 +6,15 @@ for l in open("log.txt"):
     if not l: continue
 
     if state=="FOUND+1":
-        print l
-        print
+        print(l)
+        print()
         state = None
     if state=="FOUND":
-        print l
+        print(l)
         state = "FOUND+1"
     if not state:
         #if "replaceInFile" in l or "localizeAllEmbededUrls: replacing in" in l:
         if "replacing in text of file yidxsfpt/www_ifma_org_il/BRPortal/br/P102_arc_365268.h" in l:
             if "P102_arc_365268.html" in l:
-               print l
+               print(l)
                state = "FOUND"
