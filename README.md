@@ -2,7 +2,7 @@
 
 ## Installation
 
-   - The project uses Python2.7
+   - The project uses Python3
 
 ## Running the backup
 

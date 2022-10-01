@@ -5,8 +5,8 @@ u = yaml.safe_load(open("urls.yaml"))
 numSeen = numFetchStarted = numFetched = numDone = 0
 for url in list(u.keys()):
             p = u[url]["phase"]
-            if p=="SEEN": 
-                numSeen += 1
+            if p=="PENDING": 
+                numPending += 1
             elif p=="FETCH-STARTED": 
                 numFetchStarted += 1
             elif p=="FETCHED": 
@@ -17,5 +17,5 @@ for url in list(u.keys()):
                 print("For URL", url, " phase is unexpected: '"+p+"' - Aborting.")
                 exit()
 numCache = len(glob.glob("cache/*"))
-print("Stats: Seen %d, Fetched-started %d, Fetched %d, Done %d. At cache %d" % \
+print("Stats: Pending %d, Fetched-started %d, Fetched %d, Done %d. At cache %d" % \
       (numSeen, numFetchStarted, numFetched, numDone, numCache))

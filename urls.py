@@ -1,7 +1,7 @@
 import yaml, os, random, time, glob, urllib.request, urllib.parse, urllib.error, shutil
 
 HEADER = "<META HTTP-EQUIV='Content-Type' CONTENT='text/html; charset=utf-8'>"
-WAIT_LOW = 5; WAIT_HIGH = 29
+WAIT_LOW = 3; WAIT_HIGH = 14
 #WAIT_LOW = 0; WAIT_HIGH = 14
 
 embededUrlsPreambles = [ 'src=', 'href=', 'background:url' ]
@@ -52,11 +52,15 @@ def getShortUrl(url):
     else:
         return url[:13] +"..."+ url[-12:]
 logEntryNumber = 0       
-def toLog(msg, relatedUrl, show=False):
+def toLog(msg, relatedUrl, show=False, depth=None):
     global logEntryNumber
     logEntryNumber += 1
     if show: 
-        print((str(logEntryNumber).zfill(3) +" "+getShortUrl(relatedUrl) +" "+ msg[:160]))
+        if depth==None:
+            depth = "  "
+        else:
+            depth = str(depth).rjust(2)
+        print((str(logEntryNumber).zfill(3) +" "+depth+" "+getShortUrl(relatedUrl) +" "+ msg[:160]))
     with open("log.txt", 'a') as log:
         textToFile  = str(logEntryNumber).zfill(3) +" "+ msg
         textToFile += "\n         "+ relatedUrl +"\n\n"
@@ -64,13 +68,14 @@ def toLog(msg, relatedUrl, show=False):
 
 class URL(object):
     def __init__(self):
-        # phase can be: SEEN, FETCH-STSRTED, FETCHED, DONE
-        self.phase = "SEEN"
+        # phase can be: PENDING, FETCH-STSRTED, FETCHED, DONE
+        self.phase = "PENDING"
         self.parentURL = None
         self.protocol = None
         self.netLocation = None
         self.path = None
         self.fileName = None
+        self.depth = None
         self.localFileNames = [ ]
 class URLs(object):
     #Main data store: 
@@ -93,7 +98,7 @@ class URLs(object):
                 except:
                     pass            
         else:
-            self.addNewUrl(rootUrl, rootUrl)
+            self.addNewUrl(rootUrl, rootUrl, isRootUrl = True)
         
         self.localStorageRootPath = localStorageRootPath
         self.useWhiteList = False
@@ -112,8 +117,7 @@ class URLs(object):
             tmpUrls[url]["localFileNames"] = self.urls[url].localFileNames                         
         yaml.dump( tmpUrls, open("urls.yaml", 'w') )
 
-    def addNewUrl(self, url, parentUrl):
-        toLog("    addNewUrl: adding url: '"+ str(url) +"'", url, True)
+    def addNewUrl(self, url, parentUrl, isRootUrl = False):
         #toLog("    addNewUrl: adding url with partent '"+ str(parentUrl) +"'", url)
         if url in list(self.urls.keys()):
             toLog("ERROR: trying to add pre-existing URL - Abort")
@@ -126,7 +130,12 @@ class URLs(object):
         u.netLocation = parts.netLocation
         u.path = parts.path
         u.fileName = parts.fileName
+        if isRootUrl:
+            u.depth = 0
+        else:
+            u.depth = self.urls[parentUrl].depth + 1
         self.urls[url] = u
+        toLog("    addNewUrl: Added url", url, True, u.depth)
 
     def deleteUrl(self, url):
         toLog("    deleteUrl: deleting url", url)
@@ -137,11 +146,11 @@ class URLs(object):
         self.whiteList = whiteList
 
     def logStats(self):
-        numSeen = numFetchStarted = numFetched = numDone = 0
+        numPending = numFetchStarted = numFetched = numDone = 0
         for url in list(self.urls.keys()):
             p = self.urls[url].phase
-            if p=="SEEN": 
-                numSeen += 1
+            if p=="PENDING": 
+                numPending += 1
             elif p=="FETCH-STARTED": 
                 numFetchStarted += 1
             elif p=="FETCHED": 
@@ -151,7 +160,7 @@ class URLs(object):
             else:
                 toLog("ERROR: Phase of URL is unexpected: '"+p+"' - Aborting.", url, True)
                 exit()
-        toLog("Stats: Seen %d, Fetched-started %d, Fetched %d, Done %d" % (numSeen, numFetchStarted, numFetched, numDone), "", True)
+        toLog("Stats: Pending %d, Fetched-started %d, Fetched %d, Done %d" % (numPending, numFetchStarted, numFetched, numDone), "", True)
 
     def decodeUrl(self, url):
         def isHashedUrl(url):
@@ -192,7 +201,7 @@ class URLs(object):
 
 
     def setPhase(self, url, newPhase):
-        if newPhase not in ["SEEN", "FETCH-STARTED", "FETCHED", "DONE"]:
+        if newPhase not in ["PENDING", "FETCH-STARTED", "FETCHED", "DONE"]:
             toLog("ERROR: Requested new phase '"+ newPhase +"' is not allowed - Aborting", url, True)
             exit()
         self.urls[url].phase = newPhase
@@ -297,7 +306,13 @@ class URLs(object):
             toLog("    fetch: copy cmd: "+ cmd, url)
             os.system(cmd)
             if localPathFN.endswith("html"):
-                if HEADER not in open(localPathFN).read(1000):
+                file_start = HEADER
+                try:
+                    file_start = open(localPathFN).read(1000)
+                except:
+                    toLog(f'    fetch: could not read start of the file {localPathFN}', url, True)
+                    toLog( "        Probably this is a binary file mascerading as an HTML file", url, True)
+                if HEADER not in file_start:
                     self.replaceInFile( localPathFN, "\n<head>\n", "\n<head>\n"+ HEADER +"\n" )
 
         toLog("    Entering fetch", url)
@@ -309,7 +324,8 @@ class URLs(object):
         if os.path.isfile(localPathFN):
             # Since the file this URL points to is already handled by another URL, there is nothing more
             #    we need to do with this URL - so we can mark it "done".
-            # Multiple URLs pointing at the same file on the server, at the same location, is legitimate, since different URLs (esp. with relative path) can point to same file.
+            # Multiple URLs pointing at the same file on the server, at the same location, 
+            #        is legitimate, since different URLs (esp. with relative path) can point to same file.
             toLog("    Local file pre-exists - Will mark URL as DONE and return", localPathFN, True)
             self.setPhase(url, "DONE")   
             return
@@ -324,12 +340,14 @@ class URLs(object):
             os.makedirs(cachePath)
 
         if os.path.isfile(cachePath + fn): 
-            toLog("    At fetch: cache hit - no fetch from the Internet", cachePath + fn, True)
+            depth = self.urls[url].depth
+            toLog("    At fetch: cache hit - no fetch from the Internet", cachePath + fn, True, depth)
             copyFileFromCacheToLocalAndFixCharSet(url)
             self.setPhase(url, "FETCHED")  
             return 
         
-        toLog("    fetch: cache miss, will fetch from the Internet to the cache", url, True)
+        depth = self.urls[url].depth
+        toLog("    fetch: cache miss, will fetch from the Internet to the cache", url, True, depth)
         u = self.urls[url]
         fullUrl = u.protocol +"://"+ u.netLocation +"/"+ u.path + u.fileName
         toLog("    fetch: Full url for fetching.", fullUrl)
@@ -339,11 +357,12 @@ class URLs(object):
         toLog("    wget command: "+ cmd, url)
         os.system(cmd)
         size = os.path.getsize(cachePath + fn)
-        if size<3:
-            toLog("ERROR at fetch: file too small - Aborting", url, True)
-            assert not size<3, "ERROR at fetch: file too small"
+        if size>3:
+            self.handleRedirect(url, resFN, cachePath, fn)
+        else:
+            toLog("Ignoring file, because it is  too small", url, True)
+            #assert not size<3, "ERROR at fetch: file too small"
 
-        self.handleRedirect(url, resFN, cachePath, fn)
 
         sleepSeconds = random.randint(WAIT_LOW, WAIT_HIGH)
         toLog("    Fetch done. Will sleep for "+ str(sleepSeconds) +" seconds.", "", True)
@@ -353,8 +372,12 @@ class URLs(object):
         self.setPhase(url, "FETCHED")   
             
     def isOkToFetch(self, url):
-        if not self.isInPhase(url, "SEEN"):
-            toLog("    isOkToFetch rejected URL because phase not 'SEEN'", url)
+        if not self.isInPhase(url, "PENDING"):
+            toLog("    isOkToFetch rejected URL because phase not 'PENDING'", url)
+            return False
+        depth = self.urls[url].depth
+        if depth>self.MAX_DEPTH_TO_FETCH:
+            toLog("    isOkToFetch rejected URL because it is too deep", url, depth, True)
             return False
         return True
          
@@ -363,7 +386,7 @@ class URLs(object):
          toLog("        replacing '"+ findStr.replace("\n","\\n") +"'", "")
          toLog("        with '"+ newStr.replace("\n","\\n") +"'", "")
          if "ifma." in newStr:
-             toLog("ERROR at replaceInFile: try to insert string with unmodified site name - Aborting", "", True)
+             toLog("ERROR at replaceInFile: try to insert string with unmodified site name - Aborting", True)
              assert True==False
          s = open(fn).read()
          s = s.replace(findStr, newStr)
@@ -537,7 +560,14 @@ class URLs(object):
         localFile = self.getLocalPathFilename(url)
         toLog("localizeAllEmbededUrlsInFile: will analyze/modify local file: "+ localFile, url, True)
         numFound = 0
-        fileText = modifiedFileText = open(localFile).read()
+        try:
+            fileText = modifiedFileText = open(localFile).read()
+        except:
+            msg = f'    localizeAllEmbededUrlsInFile: could not read the file {localFile}'
+            toLog(msg, url, True)
+            toLog( "        Probably this is a binary file mascerading as an HTML file", "", True)
+            toLog( "        Will leave the file alone", "", True)
+            return
         #if "If you are not redirected automatically, follow this" in fileText:
         #    toLog("    File is a redirection-file genrated by this software - no adjusment needed - Done","", True)
         #    return 
