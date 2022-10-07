@@ -92,6 +92,7 @@ class URLs(object):
                 self.urls[url].protocol = tmpUrls[url]["protocol"]             
                 self.urls[url].netLocation = tmpUrls[url]["netLocation"]            
                 self.urls[url].path = tmpUrls[url]["path"]            
+                self.urls[url].depth = tmpUrls[url]["depth"]            
                 self.urls[url].fileName = tmpUrls[url]["fileName"] 
                 try:           
                     self.urls[url].localFileNames = tmpUrls[url]["localFileNames"]
@@ -102,7 +103,7 @@ class URLs(object):
         
         self.localStorageRootPath = localStorageRootPath
         self.useWhiteList = False
-        self.whiteList = [ ]
+        self.whiteList = {}
 
     def saveUrls(self):
         tmpUrls = { }
@@ -115,13 +116,14 @@ class URLs(object):
             tmpUrls[url]["path"] = self.urls[url].path             
             tmpUrls[url]["fileName"] = self.urls[url].fileName  
             tmpUrls[url]["localFileNames"] = self.urls[url].localFileNames                         
+            tmpUrls[url]["depth"] = self.urls[url].depth                         
         yaml.dump( tmpUrls, open("urls.yaml", 'w') )
 
     def addNewUrl(self, url, parentUrl, isRootUrl = False):
-        #toLog("    addNewUrl: adding url with partent '"+ str(parentUrl) +"'", url)
+        #toLog("    addNewUrl: adding url with parent '"+ str(parentUrl) +"'", url)
         if url in list(self.urls.keys()):
             toLog("ERROR: trying to add pre-existing URL - Abort")
-            assert url in list(self.urls.keys()), "trying to add pre-existing URL"
+            assert url in list(self.urls.keys()), "trying to add the pre-existing URL: "+url
         u = URL()
         u.parentURL = parentUrl
         self.urls[url] = u                 # Intermidiate insertion, needed because getUrlParts needs parentUrl
@@ -223,8 +225,8 @@ class URLs(object):
                 s += getShortUrl("")+"     path: "+str(self.path)+", fn: "+ str(self.fileName)
                 return s
 
-        #toLog("    getUrlParts: got as input: '"+ str(url) +"'", "")
-        #toLog("    getUrlParts: got as input: (optional) is local: '"+ str(localUrl) +"'", "")
+        # toLog("    getUrlParts: got as input: '"+ str(url) +"'", "")
+        # toLog("    getUrlParts: got as input: (optional) is local: '"+ str(localUrl) +"'", "")
 
         protocol = netLocation = path = fn = None
         u = self.decodeUrl(url)
@@ -298,7 +300,10 @@ class URLs(object):
             os.makedirs(localPath)
 
     
-        
+    # This function:
+    #    - creates the path if not pre-exists
+    #    - Fetches the file from the Internet to the cache(if not already in cache)
+    #    - Copies the file from the cache to the local site storage    
     def fetch(self, url):
         def copyFileFromCacheToLocalAndFixCharSet(url):
             localPathFN = self.getLocalPathFilename(url)
@@ -402,15 +407,15 @@ class URLs(object):
 
         numFetched = 0; numFilesLookedAt = 0
         for url in list(self.urls.keys()):
-            if not self.isOkToFetch(url): continue
+            if not self.isOkToFetch(url):
+                toLog("fetchIfNeeded will NOT fetch this URL - refused by isOkToFetch",url)
+                continue
             numFilesLookedAt += 1
             if numFilesLookedAt % 10 == 0:
                 toLog("Looking at file %d of %d" % (numFilesLookedAt, numToLookAt), "", True)
 
-
             self.fetch(url)
-            
-            
+                        
             numFetched += 1
             if numFetched%10==0: 
                 self.saveUrls()
@@ -422,7 +427,6 @@ class URLs(object):
     def getLocalPathFilename( self, url):
         if url not in list(self.urls.keys()):
             toLog("ERROR at getLocalPathFilename: requested URL does not exist in URLs - Aborting", str(url), True)
-            print("   URL is: "+ str(url))
             assert url in  list(self.urls.keys())   #crash sw, so we can see stack
         netLocation = self.urls[url].netLocation.replace(".", "_")
         fileName = self.urls[url].fileName 
@@ -446,7 +450,7 @@ class URLs(object):
                     toLog("   Unknown url is: "+ url, "")
                     exit()
             args = fileName.split("?")[1]
-            fileName  = fn +"_"+ args.replace("=", "_").replace(",", "_").replace(":", "_").replace("&", "_") 
+            fileName  = fn +"_"+ args.replace("=", "_").replace(",", "_").replace(":", "_").replace("&", "_").replace(";", "_") 
             if extension: fileName += "."+ extension
         localPathFN = self.localStorageRootPath + netLocation +"/"+ self.urls[url].path + fileName 
 
@@ -455,7 +459,7 @@ class URLs(object):
         toLog("    getLocalPathFilename returning: '"+ localPathFN +"'", url)
         if "br/"+ self.localStorageRootPath in localPathFN:
             toLog("ERROR at getLocalPathFilename: returened value contains double path - Aborting", str(url), True)
-            x = 12/0
+            exit()
         if "ifma." in localPathFN and not "?vhost=" in localPathFN:
             toLog("ERROR at getLocalPathFilename: returened value contains web site name - Aborting", str(url), True)
             exit()
@@ -536,7 +540,8 @@ class URLs(object):
                 return False
         for ignoreStr in UrlStartsToIgnore:
             if decodedUrl.startswith(ignoreStr): 
-                toLog("    isOkToAdd: reject URL because it starts with '"+ ignoreStr +"'", url, True)
+                toLog("    isOkToAdd: reject URL because ior its start.", url, True)
+                toLog("        Url start: '"+ ignoreStr +"'", "", True)
                 return False
  
         if len(u.fileName)>200:  
@@ -552,7 +557,8 @@ class URLs(object):
             if path.startswith(startOfWhiteListed):
                 toLog("    isOkToAdd accepted URL because path+site are in white list. Path matched with: "+ startOfWhiteListed, url, True)
                 return True
-        toLog("    isOkToAdd rejected URL because site matched, but not path. Path starts with: '"+ path[:44] +"'", url, True)
+        toLog("    isOkToAdd rejected URL because site matched, but not path.", url, True)
+        toLog("       Path starts with: '"+ path[:44] +"'", "", True)
         return False
 
 
@@ -572,7 +578,9 @@ class URLs(object):
         #    toLog("    File is a redirection-file genrated by this software - no adjusment needed - Done","", True)
         #    return 
         if self.localStorageRootPath in fileText:
-            toLog("ERROR in localizeAllEmbededUrlsInFile: file text contains already localized URLs - double invocation? - Aborting", self.localStorageRootPath, True)
+            msg  = "ERROR in localizeAllEmbededUrlsInFile: file text contains already localized URLs"
+            msg += " - double invocation? - Aborting"
+            toLog(msg, self.localStorageRootPath, True)
             exit()
         embededUrlIndexes = [ ]
         for p in embededUrlsPreambles:
@@ -584,9 +592,11 @@ class URLs(object):
                 toLog("    Embeded URL pre-exist, will change parent to '"+ url +"'", embededUrl)
                 self.urls[embededUrl].parentUrl = url
             else:
-                toLog("    Embeded URL never seen before, will add it.", embededUrl)
                 self.addNewUrl(embededUrl, url)  
-                if not self.isOkToAdd(embededUrl):
+                if self.isOkToAdd(embededUrl):
+                    toLog("    Embeded URL never seen before, will add it.", embededUrl)
+                else:
+                    toLog("    Embeded URL never seen before, will NOT add it (bcs isOkToAdd veto).", embededUrl)
                     self.deleteUrl(embededUrl)   #we needed to temporarily add the URL, so isOkToAdd can analyze it
                     continue
             
@@ -628,6 +638,20 @@ class URLs(object):
         return numFilesModified
 
 if __name__=="__main__":
+    os.system("rm 'cache/www_understending-math_022_co_il/BRPortal/br/P102_arc_974346.html'")
+    os.system("rm 'tmp/www_understending-math_022_co_il/BRPortal/br/P102_arc_974346.html'")
+    ROOT_URL = "http://www.ifma.org.il/BRPortal/br/P100.jsp"
+    u = URLs(ROOT_URL, "tmp/")
+    config = yaml.safe_load(open("config.yaml"))
+    u.setWhiteList(config["white_list"])
+    u.MAX_DEPTH_TO_FETCH = 3
+    url = "http://www.understending-math.022.co.il/BRPortal/br/P102.jsp?arc=974346"
+    u.addNewUrl(url, ROOT_URL)
+    u.fetchIfNeeded()
+    u.analyzeAllFetchedFiles()
+    u.fetchIfNeeded()
+    exit()
+
     os.system("rm 'cache/www_understending-math_022_co_il/P102.jsp?arc=970601'")
     os.system("rm 'tmp/www_understending-math_022_co_il/BRPortal/br/P102_arc_970601.html'")
     ROOT_URL = "http://www.ifma.org.il/BRPortal/br/P100.jsp"
