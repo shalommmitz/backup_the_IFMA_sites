@@ -2,4 +2,5 @@ log.txt
 *.pyc
 cache/
 yidxsfpt/
+bu/
 urls.yaml

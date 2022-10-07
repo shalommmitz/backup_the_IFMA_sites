@@ -1,5 +1,5 @@
 rm log.txt
 rm urls.yaml
-rm -rf yidxsfpt/*
+rm -rf bu/*
 rm -rf __pycache__
 clear

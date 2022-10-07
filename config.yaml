@@ -1,6 +1,6 @@
-LOCAL_STORAGE_PATH: yidxsfpt/
+LOCAL_STORAGE_PATH: bu/
 ROOT_URL: http://www.ifma.org.il/BRPortal/br/P100.jsp
-MAX_DEPTH_TO_FETCH: 5
+MAX_DEPTH_TO_FETCH: 16
 white_list:
   www.022.co.il: [/BRPortal/resources, BRPortal/resources]
   www.files.org.il: [BRPortalStorage]
