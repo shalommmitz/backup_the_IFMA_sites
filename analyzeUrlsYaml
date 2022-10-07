@@ -2,7 +2,7 @@
 import yaml, glob
 
 u = yaml.safe_load(open("urls.yaml"))
-numSeen = numFetchStarted = numFetched = numDone = 0
+numPending = numFetchStarted = numFetched = numDone = 0
 for url in list(u.keys()):
             p = u[url]["phase"]
             if p=="PENDING": 
@@ -18,4 +18,4 @@ for url in list(u.keys()):
                 exit()
 numCache = len(glob.glob("cache/*"))
 print("Stats: Pending %d, Fetched-started %d, Fetched %d, Done %d. At cache %d" % \
-      (numSeen, numFetchStarted, numFetched, numDone, numCache))
+      (numPending, numFetchStarted, numFetched, numDone, numCache))

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import urls, yaml
+import urls, yaml, os
 
 config = yaml.safe_load(open("config.yaml"))
 u = urls.URLs(config["ROOT_URL"], config["LOCAL_STORAGE_PATH"])
@@ -11,5 +11,19 @@ while numFetched or numFilesModified:
     u.logStats()
     numFetched = u.fetchIfNeeded()
     numFilesModified = u.analyzeAllFetchedFiles()
+
+# Fix for identical files in different sites not handled correctly
+root_path = config["LOCAL_STORAGE_PATH"]
+src_path = config["ROOT_URL"].split("/")[2].replace(".", "_")
+target_paths = []
+wl = config["white_list"]
+for tp in list(wl.keys()):
+    if len(wl[tp])==1 and wl[tp][0]=='':
+        if tp.replace(".", "_")!=src_path:
+            target_paths.append(tp.replace(".", "_"))
+for d in ["resources", "theme"]:
+    for target_path in target_paths:
+        cmd = f'cp -r {root_path}{src_path}/BRPortal/{d} {root_path}{target_path}/BRPortal'
+        os.system(cmd)
 
 
