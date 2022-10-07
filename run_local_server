@@ -1,0 +1,4 @@
+echo
+echo starting url: http://localhost:8000/www_ifma_org_il/BRPortal/br/P100.html
+echo 
+python3 -m http.server --directory bu
